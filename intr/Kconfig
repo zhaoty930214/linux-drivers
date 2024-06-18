@@ -1,0 +1,5 @@
+config MEVION_INTR
+	tristate "Mevion axi interrupt drivers"
+	default y
+	help
+	  if you say Y here, the support for axi ip core interrupt is available.
