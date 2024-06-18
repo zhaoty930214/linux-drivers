@@ -77,17 +77,17 @@ static int key_parse_dt(void)
     //const char *str;
     int ret;
 
-    nd = of_find_node_by_path("/fpga-debug");
-    if(NULL == nd)
-    {
-        printk(KERN_ERR "Failed to get fpga-debug node\r\n");
-    }
-    {
-        printk(KERN_INFO "\r\nSuccess to get fpga-debug node\r\n");
-    }
+    // nd = of_find_node_by_path("/fpga-debug");
+    // if(NULL == nd)
+    // {
+    //     printk(KERN_ERR "Failed to get fpga-debug node\r\n");
+    // }
+    // {
+    //     printk(KERN_INFO "\r\nSuccess to get fpga-debug node\r\n");
+    // }
 
 
-    axi_intr_t.nd1 = of_find_node_by_path("/pl-key1");
+    axi_intr_t.nd1 = of_find_node_by_path("/pl_key1");
     if(NULL == axi_intr_t.nd1)
     {
         printk(KERN_ERR "axi_intr: Failed to get axi_intr node\r\n");
@@ -100,7 +100,7 @@ static int key_parse_dt(void)
         return -EINVAL;
     }
 
-    ret = request_irq(axi_intr_t.irq_num1, axi_gpio_handler, 0, "PL_AXI_GPIO", NULL);
+    ret = request_irq(axi_intr_t.irq_num1, axi_gpio_handler, 0, "PL_AXI_GPIO0", NULL);
     if(ret)
     {
         printk(KERN_INFO "request irq failed\r\n");
@@ -108,7 +108,7 @@ static int key_parse_dt(void)
 
 
 /*--------------------------------------------*/
-    axi_intr_t.nd2 = of_find_node_by_path("/pl-key2");
+    axi_intr_t.nd2 = of_find_node_by_path("/pl_key2");
     if(NULL == axi_intr_t.nd2)
     {
         printk(KERN_ERR "axi_intr: Failed to get axi_intr node\r\n");
@@ -121,7 +121,7 @@ static int key_parse_dt(void)
         return -EINVAL;
     }
 
-    ret = request_irq(axi_intr_t.irq_num2, axi_gpio_handler, 0, "PL_AXI_GPIO", NULL);
+    ret = request_irq(axi_intr_t.irq_num2, axi_gpio_handler, 0, "PL_AXI_GPIO1", NULL);
     if(ret)
     {
         printk(KERN_INFO "request irq failed\r\n");
