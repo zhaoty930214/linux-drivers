@@ -26,19 +26,21 @@ struct axi_intr{
     int key_gpio;
     int irq_num1;
     int irq_num2;
-
+    struct fasync_struct *async_queue;
 };
 
 static struct axi_intr axi_intr_t;
 
 static irqreturn_t axi_gpio_handler(int irq, void *dev_id)
 {
+    kill_fasync(&axi_intr_t.async_queue, SIGIO, POLL_IN);
     printk(KERN_INFO "IRQ triggered\n");
     return IRQ_HANDLED;
 }
 
 static int axi_intr_open(struct inode *inode, struct file *filp)
 {
+    printk(KERN_INFO "open was called\r\n");
     filp->private_data = &axi_intr_t;
     return 0;
 }
@@ -62,14 +64,22 @@ static int axi_intr_release(struct inode *inode, struct file *filp)
 }
 
 
+static int axi_intr_fasync(int fd, struct file *filp, int on)
+{
+    return fasync_helper(fd, filp, on, &axi_intr_t.async_queue);
+}
+
+
+
 static struct file_operations axi_intr_fops={
     .owner = THIS_MODULE,
     .open = axi_intr_open,
-    .release = NULL,
-    .read = NULL,
-    .write = NULL,
-    .fasync = NULL,
+    .release = axi_intr_release,
+    .read = axi_intr_read,
+    .write = axi_intr_write,
+    .fasync = axi_intr_fasync,
 };
+
 
 static int key_parse_dt(void)
 {
@@ -131,18 +141,19 @@ static int key_parse_dt(void)
     return 0;
 }
 
-
+#define IRQ_NAME    "irq"
 
 static int axi_intr_chrdev_init(void )
 {
     int ret;
     /*step1: Register dev_id*/
-    ret = alloc_chrdev_region(&axi_intr_t.devid, 0, 1, "PL-IRQ");
+    ret = alloc_chrdev_region(&axi_intr_t.devid, 0, 1, IRQ_NAME);
     if(ret < 0)
     {
         printk(KERN_ERR "allocate dev_id failded\r\n");
     }
     /*step2: cdev init*/
+    axi_intr_t.cdev.owner = THIS_MODULE;
     cdev_init(&axi_intr_t.cdev, &axi_intr_fops);
 
     /*step3: cdev add*/
@@ -151,7 +162,7 @@ static int axi_intr_chrdev_init(void )
         goto fail_1;
 
     /*step4: class create*/
-    axi_intr_t.class = class_create(THIS_MODULE, "PL-PS");
+    axi_intr_t.class = class_create(THIS_MODULE, IRQ_NAME);
     if(IS_ERR(axi_intr_t.class))
     {
         ret = PTR_ERR(axi_intr_t.class);
@@ -162,14 +173,13 @@ static int axi_intr_chrdev_init(void )
     /*step5: device create*/
     axi_intr_t.device = device_create(axi_intr_t.class, NULL,
                                       axi_intr_t.devid, NULL,
-                                      "PL-PS");
+                                      IRQ_NAME);
     if(IS_ERR(axi_intr_t.device))
     {
         ret = PTR_ERR(axi_intr_t.device);
-    }
         goto fail_3;
-
-
+    }
+    return 0;
 fail_3:
     class_destroy(axi_intr_t.class);
 fail_2:
@@ -177,9 +187,10 @@ fail_2:
 fail_1:
     unregister_chrdev_region(axi_intr_t.devid, 1);
 
-    return 0;
+    return ret;
 }
 
+// EXPORT(axi_intr_chrdev_init);
 
 static int __init axi_intr_init(void)
 {
@@ -205,6 +216,13 @@ static int __init axi_intr_init(void)
 
 static void __exit axi_intr_exit(void)
 {
+    device_destroy(axi_intr_t.class, axi_intr_t.devid);
+
+    class_destroy(axi_intr_t.class);
+
+    cdev_del(&axi_intr_t.cdev);
+
+    unregister_chrdev_region(axi_intr_t.devid, 1);
 
     free_irq(axi_intr_t.irq_num1 , NULL);
     free_irq(axi_intr_t.irq_num2 , NULL);
