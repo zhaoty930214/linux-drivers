@@ -1,0 +1,28 @@
+#define GPIO_ACTIVE_HIGH 0
+#define GPIO_ACTIVE_LOW	1
+
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/include/ "system-conf.dtsi"
+/ {
+    fpga-debug{
+        compatible = "fpga-debug";
+        status = "okay";
+    };
+
+    pl-key1{
+        compatible = "pl-key,irq";
+        status = "okay";
+        pl-gpio = <&axi_gpio_0 0 0 GPIO_ACTIVE_HIGH>;
+        interrupt-parent=<&axi_gpio_0>;
+        interrupts=<0 IRQ_TYPE_EDGE_BOTH>;
+    };
+
+    pl-key2{
+        compatible = "pl-key,irq";
+        status = "okay";
+        pl-gpio = <&axi_gpio_1 0 0 GPIO_ACTIVE_HIGH>;
+        interrupt-parent=<&axi_gpio_1>;
+        interrupts=<0 IRQ_TYPE_EDGE_BOTH>;
+    };
+};
