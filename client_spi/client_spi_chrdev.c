@@ -5,11 +5,42 @@
 #include "client_spi_types.h"
 
 
+static int client_spi_open(struct inode *inode, struct file *filp)
+{
+    return 0;
+}
+
+static int client_spi_close(struct inode *inode, struct file *filp)
+{
+    return 0;
+}
+
+static ssize_t client_spi_read(struct file *filp, char __user *buf,
+                         size_t cnt, loff_t *offt)
+{
+    ssize_t len;
+
+    return len;
+
+}
+
+
+static ssize_t client_spi_write(struct file *filp, const char __user *buf,
+                         size_t cnt, loff_t *offt)
+{
+    size_t len;
+    return len;
+}
+
+EXPORT_SYMBOL(client_spi_write);
+
+
+
 static struct file_operations client_spi_fops = {
-    .open = NULL,
-    .release = NULL,
-    .read = NULL,
-    .write = NULL,
+    .open = client_spi_open,
+    .release = client_spi_close,
+    .read = client_spi_read,
+    .write = client_spi_write,
 };
 
 int client_spi_chrdev_init(struct spi_device *spi)
@@ -29,6 +60,7 @@ int client_spi_chrdev_init(struct spi_device *spi)
     if(ret)
     {
         printk(KERN_ERR"alloc dev_id failed\r\n");
+        return ret;
     }
     //cdev_init
     cdev_init(&cspi->cdev, &client_spi_fops);
@@ -37,21 +69,48 @@ int client_spi_chrdev_init(struct spi_device *spi)
     ret = cdev_add(&cspi->cdev, cspi->dev_id, 1);
     if(ret)
     {
-        
+        goto fail1;
     }
+
     //class_create
+    cspi->class = class_create(THIS_MODULE, CLIENT_SPI_NAME);
+    if(IS_ERR(cspi->class))
+    {
+        ret = PTR_ERR(cspi->class);
+        goto fail2;
+    }
 
     //device_create
+    cspi->device = device_create(cspi->class, &spi->dev, 
+                                 cspi->dev_id, NULL, CLIENT_SPI_NAME);
 
+    if(IS_ERR(cspi->device))
+    {
+        ret = PTR_ERR(&cspi->device);
+        goto fail3;
+    }                             
 
     return 0;
+fail3:
+    class_destroy(cspi->class);
+fail2:
+    cdev_del(&cspi->cdev);
+fail1:
+    unregister_chrdev_region(cspi->dev_id, 1);
+    return ret;
 }
 
 int client_spi_chrdev_exit(struct spi_device *spi)
 {
     struct client_spi *cspi = spi_get_drvdata(spi);
 
+    device_destroy(cspi->class, cspi->dev_id);
+
+    class_destroy(cspi->class);
+
     cdev_del(&cspi->cdev);
+
+    unregister_chrdev_region(cspi->dev_id, 1);
 
     return 0;
 }
