@@ -27,14 +27,35 @@ struct axi_intr{
     int irq_num1;
     int irq_num2;
     struct fasync_struct *async_queue;
+    atomic_t intr_flags;
+    spinlock_t spin_lock;
+    //int flag;
 };
 
 static struct axi_intr axi_intr_t;
 
-static irqreturn_t axi_gpio_handler(int irq, void *dev_id)
+static irqreturn_t axi_gpio_handler_1(int irq, void *dev_id)
 {
+    spin_lock(&axi_intr_t.spin_lock);
+
     kill_fasync(&axi_intr_t.async_queue, SIGIO, POLL_IN);
-    printk(KERN_INFO "IRQ triggered\n");
+    atomic_add(0x1 << 10, &axi_intr_t.intr_flags);
+    printk(KERN_INFO "IRQ triggered 1\n");
+    spin_unlock(&axi_intr_t.spin_lock);
+
+    return IRQ_HANDLED;
+
+}
+
+static irqreturn_t axi_gpio_handler_2(int irq, void *dev_id)
+{
+    spin_lock(&axi_intr_t.spin_lock);
+
+    kill_fasync(&axi_intr_t.async_queue, SIGIO, POLL_IN);
+    atomic_add(0x1 << 20, &axi_intr_t.intr_flags);
+    printk(KERN_INFO "IRQ triggered 2\n");
+    spin_unlock(&axi_intr_t.spin_lock);
+
     return IRQ_HANDLED;
 }
 
@@ -48,7 +69,20 @@ static int axi_intr_open(struct inode *inode, struct file *filp)
 static ssize_t axi_intr_read(struct file *filp, char __user *buf,
                          size_t cnt, loff_t *offt)
 {
-    return 0;
+    int ret;
+    unsigned long flag;
+    if( sizeof(int) != cnt)
+        return -EINVAL;
+    else
+    {
+        /*Should assurance that critical area here*/
+        spin_lock_irqsave(&axi_intr_t.spin_lock, flag);
+        ret = copy_to_user(buf, &axi_intr_t.intr_flags, sizeof(int));
+        atomic_set(&axi_intr_t.intr_flags, 0);
+        spin_unlock_irqrestore(&axi_intr_t.spin_lock, flag);
+    }
+
+    return ret;
 }
 
 static ssize_t axi_intr_write(struct file *filp, const char __user *buf,
@@ -83,7 +117,7 @@ static struct file_operations axi_intr_fops={
 
 static int key_parse_dt(void)
 {
-    struct device_node *nd;
+    //struct device_node *nd;
     //const char *str;
     int ret;
 
@@ -110,7 +144,7 @@ static int key_parse_dt(void)
         return -EINVAL;
     }
 
-    ret = request_irq(axi_intr_t.irq_num1, axi_gpio_handler, 0, "PL_AXI_GPIO0", NULL);
+    ret = request_irq(axi_intr_t.irq_num1, axi_gpio_handler_1, 0, "PL_AXI_GPIO0", NULL);
     if(ret)
     {
         printk(KERN_INFO "request irq failed\r\n");
@@ -131,7 +165,7 @@ static int key_parse_dt(void)
         return -EINVAL;
     }
 
-    ret = request_irq(axi_intr_t.irq_num2, axi_gpio_handler, 0, "PL_AXI_GPIO1", NULL);
+    ret = request_irq(axi_intr_t.irq_num2, axi_gpio_handler_2, 0, "PL_AXI_GPIO1", NULL);
     if(ret)
     {
         printk(KERN_INFO "request irq failed\r\n");
@@ -146,6 +180,9 @@ static int key_parse_dt(void)
 static int axi_intr_chrdev_init(void )
 {
     int ret;
+
+    //ATOMIC_INIT(&axi_intr_t.intr_flags);
+
     /*step1: Register dev_id*/
     ret = alloc_chrdev_region(&axi_intr_t.devid, 0, 1, IRQ_NAME);
     if(ret < 0)
@@ -201,6 +238,8 @@ static int __init axi_intr_init(void)
     printk(KERN_ERR "tag2. ret = %d\r\n", ret);
 
     axi_intr_chrdev_init();
+
+    spin_lock_init(&axi_intr_t.spin_lock);
 
     if(NULL == axi_intr_t.nd1)
     {

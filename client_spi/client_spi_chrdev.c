@@ -7,20 +7,38 @@
 
 static int client_spi_open(struct inode *inode, struct file *filp)
 {
+    struct client_spi *myspi = container_of(inode->i_cdev, struct client_spi, cdev);
+    filp->private_data = myspi;
     return 0;
 }
 
 static int client_spi_close(struct inode *inode, struct file *filp)
 {
+    filp->private_data = NULL;
     return 0;
 }
 
 static ssize_t client_spi_read(struct file *filp, char __user *buf,
                          size_t cnt, loff_t *offt)
 {
-    ssize_t len;
+    ssize_t ret;
+    // struct client_spi *myspi = filp->private_data;
+    // ssize_t len;
+    // struct spi_message msg;
 
-    return len;
+    // struct spi_transfer t = {
+    //     .tx_buf = buf,
+    //     .bits_per_word = 8,
+    //     .len = 2,
+    // };
+
+    // spi_message_init(&msg);
+    // spi_message_add_tail(&t, &msg);
+    // ret = spi_sync(myspi->dspi, &msg);
+    // if(ret)
+    //     return ret;
+
+     return ret;
 
 }
 
@@ -28,8 +46,23 @@ static ssize_t client_spi_read(struct file *filp, char __user *buf,
 static ssize_t client_spi_write(struct file *filp, const char __user *buf,
                          size_t cnt, loff_t *offt)
 {
-    size_t len;
-    return len;
+    struct client_spi *myspi = filp->private_data;
+    ssize_t len, ret;
+    struct spi_message msg;
+
+    struct spi_transfer t = {
+        .tx_buf = buf,
+        .bits_per_word = 8,
+        .len = 2,
+    };
+
+    spi_message_init(&msg);
+    spi_message_add_tail(&t, &msg);
+    ret = spi_sync(myspi->dspi, &msg);
+    if(ret)
+        return ret;
+
+    return ret;
 }
 
 EXPORT_SYMBOL(client_spi_write);

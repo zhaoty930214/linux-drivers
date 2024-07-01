@@ -11,7 +11,25 @@ static int fd;
 
 static void sigio_signal_func(int signum)
 {
+    int flag, ret, i;
     printf("App got notification from irq\r\n");
+
+    ret = read(fd, &flag, sizeof(int));
+    if(ret < 0)
+    {
+        printf("read error\r\n");
+    }
+    else
+    {
+        printf("app, ret= %d, flag=%d\r\n", ret, flag);
+        for(i=0; i<32; i++)
+        {
+            if( 0x1<<i & flag)
+            {
+                printf("Bit %d was captured\r\n", i);
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -24,7 +42,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    fd = open("/dev/PL-PS", O_RDWR | O_NONBLOCK);
+    fd = open(argv[1], O_RDWR | O_NONBLOCK);
     if( 0 >fd)
     {
         printf("Error:%s file open failed fd = %d\r\n", argv[1], fd);
