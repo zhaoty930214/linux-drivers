@@ -1,5 +1,10 @@
 obj-m +=  my_mpu6050.o
-my_mpu6050-objs := mpu6050.o	mpu6050_i2c.o
+
+#mpu6050_core.o 
+
+my_mpu6050-objs := mpu6050.o mpu6050_i2c.o mpu6050_config.o  \
+				atk_ms6050/atk_ms6050.o \
+				   mpu6050_chrdev.o
 
 
 KERN_DIR := $(KERNEL_DIR)

@@ -1,86 +1,87 @@
 #include "mpu6050_types.h"
+#include "mpu6050_lib.h"
 
 
-static void iic_start(int gpio_SCL, int gpio_SDA)
+static void iic_start(struct IIC_IO iio_io)
 {
-    gpio_set_value(gpio_SCL, 1);
-    gpio_set_value(gpio_SDA, 1);
+    gpio_set_value(iio_io.gpio_SCL, 1);
+    gpio_set_value(iio_io.gpio_SDA, 1);
     
     udelay(4);
 
-    gpio_set_value(gpio_SDA, 0);
+    gpio_set_value(iio_io.gpio_SDA, 0);
 
     udelay(4);
 
-    gpio_set_value(gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
 }
 
 
-static void iic_stop(int gpio_SCL, int gpio_SDA)
+static void iic_stop(struct IIC_IO iio_io)
 {
-    gpio_set_value(gpio_SCL, 0);
-    gpio_set_value(gpio_SDA, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SDA, 0);
     
     udelay(4);
 
-    gpio_set_value(gpio_SCL, 1);
+    gpio_set_value(iio_io.gpio_SCL, 1);
 
     udelay(4);
 
-    gpio_set_value(gpio_SDA, 1);
+    gpio_set_value(iio_io.gpio_SDA, 1);
 }
 
-static void iic_send_byte(int gpio_SCL, int gpio_SDA, uint8_t txd)
+static void iic_send_byte(struct IIC_IO iio_io, uint8_t txd)
 {
     uint8_t t;
-    gpio_set_value(gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
 
     for(t=0; t<8; t++)
     {
-        gpio_set_value(gpio_SDA, (txd&0x80)>>7);
+        gpio_set_value(iio_io.gpio_SDA, (txd&0x80)>>7);
         txd <<= 1;
 
         udelay(4);
 
-        gpio_set_value(gpio_SCL, 1);
+        gpio_set_value(iio_io.gpio_SCL, 1);
 
         udelay(4);
 
-        gpio_set_value(gpio_SCL, 0);
+        gpio_set_value(iio_io.gpio_SCL, 0);
 
         udelay(4);
     }
 }
 
 
-static uint8_t iic_rece_byte(int gpio_SCL, int gpio_SDA)
+static uint8_t iic_rece_byte(struct IIC_IO iio_io)
 {
     uint8_t i=0, rxd=0;
 
-    gpio_direction_input(gpio_SDA);
+    gpio_direction_input(iio_io.gpio_SDA);
 
-    gpio_set_value(gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
 
     udelay(4);
 
     for(i=0; i<8; i++)
     {
-        gpio_set_value(gpio_SCL, 1);
+        gpio_set_value(iio_io.gpio_SCL, 1);
         udelay(2);
 
         rxd <<= 1;
-        if(gpio_get_value(gpio_SDA))
+        if(gpio_get_value(iio_io.gpio_SDA))
         {
             rxd |= 0x01;
         }
         udelay(2);
 
-        gpio_set_value(gpio_SCL, 0);
+        gpio_set_value(iio_io.gpio_SCL, 0);
 
         udelay(4);
     }
 
-    gpio_direction_output(gpio_SDA, 0);
+    gpio_direction_output(iio_io.gpio_SDA, 0);
 
     return rxd;
 }
@@ -88,67 +89,102 @@ static uint8_t iic_rece_byte(int gpio_SCL, int gpio_SDA)
 
 
 //产生ACK应答
-static void iic_ack(int gpio_SCL, int gpio_SDA)
+static void iic_ack(struct IIC_IO iio_io)
 {
-    gpio_set_value(gpio_SCL, 0);
-    gpio_set_value(gpio_SDA, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SDA, 0);
     udelay(4);
 
-    gpio_set_value(gpio_SCL, 1);
+    gpio_set_value(iio_io.gpio_SCL, 1);
     udelay(4);
 
-    gpio_set_value(gpio_SCL, 0);
+    gpio_set_value(iio_io.gpio_SCL, 0);
     udelay(4);;
 }
 
 //两线式接口写寄存器
-void iic_write_reg8(int gpio_SCL, int gpio_SDA, uint8_t addr , uint16_t data)
+int iic_write_reg8(struct IIC_IO iic_io, uint8_t addr , uint8_t *data, int len)
 {
+    int i;
+	iic_start(iic_io);
 
-	iic_start(gpio_SCL, gpio_SDA);
+	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(iic_io);
 
-	iic_send_byte(gpio_SCL, gpio_SDA, MPU6050_ADDR | 0x0);
-	iic_ack(gpio_SCL, gpio_SDA);
+	iic_send_byte(iic_io, addr);
+	iic_ack(iic_io);
 
-	iic_send_byte(gpio_SCL, gpio_SDA, addr);
-	iic_ack(gpio_SCL, gpio_SDA);
-
-	iic_send_byte(gpio_SCL, gpio_SDA, data>>8 & 0X00FF);
-	iic_ack(gpio_SCL, gpio_SDA);
+    for(i=0; i< len; i++)
+    {
+        iic_send_byte(iic_io, data[i]);
+        iic_ack(iic_io);
+    }
     
-	iic_send_byte(gpio_SCL, gpio_SDA, data & 0x00FF);
-	iic_ack(gpio_SCL, gpio_SDA);
-    
-  	iic_stop(gpio_SCL, gpio_SDA);
+  	iic_stop(iic_io);
+
+    return 0;
 }
+
+int iic_write_byte(struct IIC_IO iic_io, uint8_t addr , uint8_t data)
+{
+	iic_start(iic_io);
+
+	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(iic_io);
+
+	iic_send_byte(iic_io, addr);
+	iic_ack(iic_io);
+
+    iic_send_byte(iic_io, data);
+    iic_ack(iic_io);
+    
+  	iic_stop(iic_io);
+
+    return 0;
+}
+
 
 
 //两线式接口读寄存器
-uint8_t iic_read_reg8(int gpio_SCL, int gpio_SDA, uint8_t addr)
-{
-	uint8_t rxd=0;
+uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len)
+{   
+    int i;
+    uint8_t rxd=0;
 
-	iic_start(gpio_SCL, gpio_SDA);
+    if(len < 0)
+    {
+        mpu6050_err("iic read len err");
+    }
 
-	iic_send_byte(gpio_SCL, gpio_SDA, MPU6050_ADDR | 0x0);
-	iic_ack(gpio_SCL, gpio_SDA);
 
-	iic_send_byte(gpio_SCL, gpio_SDA, addr);
-	iic_ack(gpio_SCL, gpio_SDA);
+	iic_start(iic_io);
 
-  	iic_start(gpio_SCL, gpio_SDA);
+	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(iic_io);
 
-	iic_send_byte(gpio_SCL, gpio_SDA, MPU6050_ADDR | 0x01);
-	iic_ack(gpio_SCL, gpio_SDA);
+	iic_send_byte(iic_io, addr);
+	iic_ack(iic_io);
+
+  	iic_start(iic_io);
+
+	iic_send_byte(iic_io, MPU6050_ADDR | 0x01);
+	iic_ack(iic_io);
     
-	rxd |= iic_rece_byte(gpio_SCL, gpio_SDA);
-	iic_ack(gpio_SCL, gpio_SDA);    
+    for(i=0; i<len; i++)
+    {
+        buff[i] = iic_rece_byte(iic_io);
+        iic_ack(iic_io);    
+    }
 
-  	iic_stop(gpio_SCL, gpio_SDA);
-
-    printk(KERN_INFO "Read out from *%x=%x\r\n", addr, rxd);
-  	return  rxd ;
+  	iic_stop(iic_io);
+    for(i=0; i<len; i++)
+    {
+        printk(KERN_INFO "Read out from *%x=%x\r\n", addr, buff[i]);
+    }
+  	return  buff[0];
 }
+
+
 
 static int mpu6050_read_reg(struct i2c_client *client, u8 reg, u8 *buf, u8 len)
 {
