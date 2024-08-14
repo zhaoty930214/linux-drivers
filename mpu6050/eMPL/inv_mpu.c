@@ -3001,12 +3001,12 @@ uint8_t atk_ms6050_dmp_get_data(float *pitch, float *roll, float *yaw)
          */
 
         /*asin, step=0.012592*/
-        *pitch = asin_array[(int ) ((-2 * q1 * q3 + 2 * q0 * q2)/0.004)/500];
+        // *pitch = asin_array[(int ) ((-2 * q1 * q3 + 2 * q0 * q2)/0.004)/500];
         // *roll 
         // *yaw 
-        // *pitch  = asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.3;
-        // *roll   = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.3;
-        // *yaw    = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.3;
+        *pitch  = asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.3;
+        *roll   = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.3;
+        *yaw    = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.3;
     }
     else
     {

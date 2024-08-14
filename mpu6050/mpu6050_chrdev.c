@@ -7,11 +7,13 @@
 #include <linux/cdev.h>
 #include <linux/of_gpio.h>
 #include <linux/uaccess.h>
+#include <linux/timer.h>
 
 #include "mpu6050_lib.h"
 #include "mpu6050_ioctl.h"
 
-static int mpu6050_open(struct inode *nd, struct file *filep)
+
+int mpu6050_open(struct inode *nd, struct file *filep)
 {
     struct mpu6050 *mpu = container_of(nd->i_cdev, struct mpu6050, cdev);
 
@@ -19,6 +21,7 @@ static int mpu6050_open(struct inode *nd, struct file *filep)
 
     return 0;
 }
+
 
 static int mpu6050_release(struct inode *nd, struct file *filep)
 {
@@ -46,24 +49,80 @@ static ssize_t mpu6050_read(struct file *filep, char __user *buff,  size_t len, 
     return ret;
 }
 
+static int mpu6050_get_external(struct mpu6050 *mpu, struct i2c_read_reg *rd_reg)
+{
+    int ret;
+    uint8_t *pbuffer;
+    if(rd_reg->length > 0)
+    {
+        pbuffer = kmalloc(rd_reg->length, GFP_KERNEL);
+        if(IS_ERR(pbuffer))
+        {
+            return -ENOMEM;
+        }
+
+        iic_read_reg8(mpu->iic_io, pbuffer, rd_reg->reg_addr, rd_reg->length);
+
+        ret = copy_to_user(rd_reg->buff, pbuffer, rd_reg->length);
+
+        kfree(pbuffer);
+    }
+    else
+    {
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static int mpu6050_set_external(struct mpu6050 *mpu, struct i2c_write_reg *wr_reg)
+{
+    int ret;
+    uint8_t *pbuffer;
+    if(wr_reg->length > 0)
+    {
+        pbuffer = kmalloc(wr_reg->length, GFP_KERNEL);
+        if(IS_ERR(pbuffer))
+        {
+            return -ENOMEM;
+        }
+
+        copy_from_user(pbuffer, wr_reg->buff, wr_reg->length);
+        ret = iic_write_reg8(mpu->iic_io, wr_reg->reg_addr, pbuffer, wr_reg->length);
+        
+        kfree(pbuffer);
+    }
+
+    return 0;
+}
 
 static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
     long rc;
     struct mpu6050 *mpu = filep->private_data;
 
+    uint8_t *pbuf;
     struct i2c_read_reg read_reg;
+    struct i2c_write_reg write_reg;
 
     void * __user arg_ptr = (void __user *) arg;
     switch(cmd){
         case MPU6050_READ_REG:
-            {
-                copy_from_user(&read_reg, arg_ptr, sizeof(read_reg));
-            }
-
-            iic_read_reg8(mpu->iic_io, read_reg.buff, read_reg.reg_addr, read_reg.length);
-            rc = 0;
+        {
+            copy_from_user(&read_reg, arg_ptr, sizeof(read_reg));
+            
+            rc = mpu6050_get_external(mpu, &read_reg);
+        }
         break;
+
+        case MPU6050_WRITE_REG:
+        {
+            copy_from_user(&write_reg, arg_ptr, sizeof(write_reg));
+
+            rc = mpu6050_set_external(mpu, &write_reg);
+        }
+        break;
+
 
         default:
         break;
@@ -148,7 +207,7 @@ static void mpu_timer_function(unsigned long arg)
 
     struct mpu6050 *mpu = (struct mpu6050 *) arg;
 
-    iic_read_reg8(mpu->iic_io, &data, 0x3B, 6);
+    iic_read_reg8(mpu->iic_io, data, 0x3B, 6);
     // iic_read_reg8(mpu->iic_io, &data, 0x3C, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3D, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3E, 1);
@@ -156,6 +215,23 @@ static void mpu_timer_function(unsigned long arg)
     // iic_read_reg8(mpu->iic_io, &data, 0x40, 1);
 
     mod_timer(&mpu->timer, jiffies + msecs_to_jiffies(1000));
+
+}
+
+static void mpu_timer_function1(struct timer_list *t)
+{
+    // uint8_t data[6];
+
+    // struct mpu6050 *mpu = (struct mpu6050 *) arg;
+
+    // iic_read_reg8(mpu->iic_io, data, 0x3B, 6);
+    // // iic_read_reg8(mpu->iic_io, &data, 0x3C, 1);
+    // // iic_read_reg8(mpu->iic_io, &data, 0x3D, 1);
+    // // iic_read_reg8(mpu->iic_io, &data, 0x3E, 1);
+    // // iic_read_reg8(mpu->iic_io, &data, 0x3F, 1);
+    // // iic_read_reg8(mpu->iic_io, &data, 0x40, 1);
+
+    // mod_timer(&mpu->timer, jiffies + msecs_to_jiffies(1000));
 
 }
 
@@ -216,7 +292,9 @@ int mpu6050_chrdev_init(struct platform_device *pdev)
     platform_set_drvdata(pdev, mpu);
 
     mpu6050_init(mpu);
-    setup_timer(&mpu->timer, mpu_timer_function, (unsigned long) mpu);
+    //setup_timer(&mpu->timer, mpu_timer_function, (unsigned long) mpu);
+    // init_timers(&mpu->timer);
+    timer_setup(&mpu->timer, mpu_timer_function1, 0);
     mod_timer(&mpu->timer, jiffies + msecs_to_jiffies(1000));
 
     return 0;
