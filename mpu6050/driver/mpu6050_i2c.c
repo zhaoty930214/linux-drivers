@@ -1,6 +1,6 @@
 #include "mpu6050_types.h"
 #include "mpu6050_lib.h"
-
+#include "mpu6050_constants.h"
 
 static void iic_start(struct IIC_IO iio_io)
 {
@@ -149,7 +149,6 @@ int iic_write_byte(struct IIC_IO iic_io, uint8_t addr , uint8_t data)
 uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len)
 {   
     int i;
-    uint8_t rxd=0;
 
     if(len < 0)
     {
@@ -177,10 +176,10 @@ uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len
     }
 
   	iic_stop(iic_io);
-    for(i=0; i<len; i++)
-    {
-        printk(KERN_INFO "Read out from *%x=%x\r\n", addr, buff[i]);
-    }
+    // for(i=0; i<len; i++)
+    // {
+    //     printk(KERN_INFO "Read out from *%x=%x\r\n", addr+i, buff[i]);
+    // }
   	return  buff[0];
 }
 

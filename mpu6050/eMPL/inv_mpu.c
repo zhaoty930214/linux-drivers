@@ -26,12 +26,22 @@
 #include <linux/string.h>
 // #include <linux/math64.h>
 
-#include "inv_mpu.h"
-#include "../mpu6050_constants.h"
+// #include "../mpu6050_constants.h"
+#include <stdint.h>
+#include <time.h>
 
 static struct IIC_IO *iic_io;
 
+#ifdef __linux
+#include <stdint.h>
+#include <time.h>
+#include <math.h>
+#include <stdlib.h>
 
+#define MOTION_DRIVER_TARGET_MSP430
+#define delay_ms(x)    do{struct timespec ts; ts.tv_sec=0; ts.tv_nsec = x*1000*1000; nanosleep(&ts, NULL); }while(0)
+
+#endif
 /* The following functions must be defined for this platform:
  * i2c_write(unsigned char slave_addr, unsigned char reg_addr,
  *      unsigned char length, unsigned char const *data)
@@ -49,20 +59,28 @@ static struct IIC_IO *iic_io;
 //#include "msp430_i2c.h"
 //#include "msp430_clock.h"
 //#include "msp430_interrupt.h"
-#include "../atk_ms6050/atk_ms6050.h"                    /* 包含相关头文件 */
+#include "inv_mpu.h"
+#include "../example/atk_ms6050.h"                    /* 包含相关头文件 */
 #include "inv_mpu_dmp_motion_driver.h"
+#include <stdio.h>
+
 #define i2c_write   atk_ms6050_write                        /* IIC写通讯函数 */
 #define i2c_read    atk_ms6050_read                         /* IIC读通讯函数 */
-#define delay_ms(m)    msleep(m)                       /* 毫秒级延时函数 */
+// #define delay_ms(m)    msleep(m)                            /* 毫秒级延时函数 */
 #define get_ms      atk_ms6050_get_clock_ms                 /* 获取毫秒级时间戳函数 */
+
+int min(int a, int b) {  
+    return (a < b) ? a : b;  
+}  
+
 static inline int reg_int_cb(struct int_param_s *int_param) /* 中断回调函数（未实现） */
 {
 //    return msp430_reg_int_cb(int_param->cb, int_param->pin, int_param->lp_exit,
 //        int_param->active_low);
     return 0;
 }
-#define log_i(...)     do {} while (0)                      /* 打印LOG普通信息 */
-#define log_e(...)     do {} while (0)                      /* 打印LOG错误信息 */
+#define log_i(...)     do {printf(__VA_ARGS__);} while (0)                      /* 打印LOG普通信息 */
+#define log_e(...)     do {printf(__VA_ARGS__);} while (0)                      /* 打印LOG错误信息 */
 /* labs is already defined by TI's toolchain. */
 /* fabs is for doubles. fabsf is for floats. */
 
@@ -712,13 +730,18 @@ int mpu_read_reg(unsigned char reg, unsigned char *data)
  */
 int mpu_init(struct int_param_s *int_param)
 {
+    printf("Tag0.1\r\n");
+
     unsigned char data[6], rev;
 
     /* Reset device. */
     data[0] = BIT_RESET;
     if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 1, data))
         return -1;
+    printf("Tag0.11\r\n");
+    
     delay_ms(100);
+    printf("Tag0.2\r\n");
 
     /* Wake up chip. */
     data[0] = 0x00;
@@ -2873,14 +2896,19 @@ static inline unsigned short inv_orientation_matrix_to_scalar(const signed char 
 uint8_t atk_ms6050_dmp_init(void)
 {
     uint8_t ret;
-    
+    printf("Tag0\r\n");
+
     ret  = mpu_init(NULL);                                      /* 硬件初始化 */
+    printf("Tag1\r\n");
+
     ret += mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);       /* 开启指定传感器 */
     ret += mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL);    /* 设置FIFO */
     ret += mpu_set_sample_rate(DEFAULT_MPU_HZ);                 /* 设置采样率 */
     ret += dmp_load_motion_driver_firmware();                   /* 加载DMP镜像 */
     ret += dmp_set_orientation(                                 /* 设置陀螺仪方向 */
                                 inv_orientation_matrix_to_scalar(gyro_orientation));
+    printf("Tag3\r\n");
+
     ret += dmp_enable_feature(  DMP_FEATURE_6X_LP_QUAT      |   /* 设置DMP功能 */
                                 DMP_FEATURE_TAP             |
                                 DMP_FEATURE_ANDROID_ORIENT  |
@@ -2890,7 +2918,8 @@ uint8_t atk_ms6050_dmp_init(void)
     ret += dmp_set_fifo_rate(DEFAULT_MPU_HZ);                   /* 设置DMP输出速率 */
     ret += mpu_set_dmp_state(1);                                /* 使能DMP */
     ret += atk_ms6050_run_self_test();                          /* 传感器自测试 */
-    
+    printf("Tag2\r\n");
+
     return ((ret == 0) ? 0 : 1);
 }
 
@@ -3001,12 +3030,12 @@ uint8_t atk_ms6050_dmp_get_data(float *pitch, float *roll, float *yaw)
          */
 
         /*asin, step=0.012592*/
-        *pitch = asin_array[(int ) ((-2 * q1 * q3 + 2 * q0 * q2)/0.004)/500];
+        // *pitch = asin_array[(int ) ((-2 * q1 * q3 + 2 * q0 * q2)/0.004)/500];
         // *roll 
         // *yaw 
-        // *pitch  = asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.3;
-        // *roll   = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.3;
-        // *yaw    = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.3;
+        *pitch  = asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.3;
+        *roll   = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.3;
+        *yaw    = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.3;
     }
     else
     {
@@ -3014,11 +3043,4 @@ uint8_t atk_ms6050_dmp_get_data(float *pitch, float *roll, float *yaw)
     }
     
     return 0;
-}
-
-
-void set_iic(struct IIC_IO *iic)
-{
-    iic_io = iic;
-    atk_set_iic(iic_io);
 }

@@ -19,10 +19,10 @@ uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len
 
 /*mpu6050 config interface*/
 void mpu6050_soft_reset(struct mpu6050 *mpu);
-uint8_t atk_ms6050_set_gyro_fsr(uint8_t fsr, struct IIC_IO *iic_io);
-uint8_t atk_ms6050_set_accel_fsr(uint8_t fsr, struct IIC_IO *iic_io);
+// uint8_t atk_ms6050_set_gyro_fsr(uint8_t fsr, struct IIC_IO *iic_io);
+// uint8_t atk_ms6050_set_accel_fsr(uint8_t fsr, struct IIC_IO *iic_io);
 uint8_t atk_ms6050_set_lpf(uint16_t lpf, struct IIC_IO *iic_io);
-uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io);
+// uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io);
 uint8_t atk_ms6050_get_accelerometer(int16_t *ax, int16_t *ay, int16_t *az, struct IIC_IO *iic_io);
 // uint8_t atk_ms6050_get_temperature(int16_t *temp, struct IIC_IO *iic_io);
 uint8_t atk_ms6050_get_gyroscope(int16_t *gx, int16_t *gy, int16_t *gz, struct IIC_IO *iic_io);

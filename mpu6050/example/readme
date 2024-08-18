@@ -1,0 +1,1 @@
+arm-linux-gnueabihf-gcc main.c atk_ms6050.c ../eMPL/inv_mpu.c ../eMPL/inv_mpu_dmp_motion_driver.c -o main -lm -std=gnu11

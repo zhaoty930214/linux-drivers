@@ -21,8 +21,9 @@
 #ifndef _INV_MPU_H_
 #define _INV_MPU_H_
 
-#include "../mpu6050_types.h"
+// #include "../driver/mpu6050_types.h"
 //#include "./SYSTEM/sys/sys.h"
+#include <stdint.h>
 
 #define MPU6050                         /* ����Ϊʹ�õĴ�����MPU6050 */
 #define MOTION_DRIVER_TARGET_MSP430     /* �����������֣�����MSP430����������ֲ��STM32�� */
@@ -137,7 +138,7 @@ int atk_ms6050_get_clock_ms(unsigned long *count);
 uint8_t atk_ms6050_run_self_test(void);
 uint8_t atk_ms6050_dmp_get_data(float *pitch, float *roll, float *yaw);
 
-void set_iic(struct IIC_IO *iic);
+// void set_iic(struct IIC_IO *iic);
 
 #endif  /* #ifndef _INV_MPU_H_ */
 

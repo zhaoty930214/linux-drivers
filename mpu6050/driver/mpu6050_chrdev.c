@@ -51,18 +51,66 @@ static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long ar
 {
     long rc;
     struct mpu6050 *mpu = filep->private_data;
-
-    struct i2c_read_reg read_reg;
+    struct mpu6050_read_reg rd_reg;
+    struct mpu6050_write_reg wr_reg;
+    // struct mpu6050_read_reg *ptrRdReg;
+    // struct mpu6050_write_reg * __user wrRegPtr;
 
     void * __user arg_ptr = (void __user *) arg;
+    
     switch(cmd){
-        case MPU6050_READ_REG:
+        case MPU6050_READ_DATA:
+        {
+            // /*copy struct from user space*/
+            rc = copy_from_user(&rd_reg, arg_ptr, sizeof(rd_reg));
+            if(rc != 0)
             {
-                copy_from_user(&read_reg, arg_ptr, sizeof(read_reg));
+                printk("Unable to copy channel buffer address from \
+                            userspace for MPU6050_READ_DATA.\n");
+            }
+            // printk("Addr=%x\n", rd_reg.reg_addr);
+            // printk("Len=%d\n", rd_reg.length);
+
+            char *buff=kzalloc(rd_reg.length, GFP_KERNEL);
+
+            iic_read_reg8(mpu->iic_io, buff, rd_reg.reg_addr, rd_reg.length);
+
+            // /*on succes 0 returned, on fail non-0 returned which 
+            // * represent how many bytes failed to copy*/
+            rc = copy_to_user(rd_reg.buff, buff, rd_reg.length);
+
+            kfree(buff);
+        }
+        break;
+
+        case MPU6050_WRITE_DATA:
+        {
+            rc = copy_from_user(&wr_reg, arg_ptr, sizeof(wr_reg));
+            if(rc != 0)
+            {
+                printk("Unable to copy channel buffer address from \
+                            userspace for MPU6050_WRITE_DATA.\n");
             }
 
-            iic_read_reg8(mpu->iic_io, read_reg.buff, read_reg.reg_addr, read_reg.length);
-            rc = 0;
+            /*prepare buffer for datas from userspace*/
+            // printk("Addr=%x\n", wr_reg.reg_addr);
+            // printk("Len=%d\n", wr_reg.length);
+            // printk("buff start at=%x\n", wr_reg.buff);
+
+            char *buff= kzalloc(wr_reg.length, GFP_KERNEL);
+            
+            /*BUG*/
+            //wr_reg.buff = kzalloc(wr_reg.length, GFP_KERNEL);
+            rc = copy_from_user(buff, wr_reg.buff, wr_reg.length);
+
+            if(rc !=0 )
+            {
+                printk("Unable to copy buff data from userspace for MPU6050_WRITE_DATA\n");
+            }
+            iic_write_reg8(mpu->iic_io, wr_reg.reg_addr, buff, wr_reg.length);
+
+            kfree(buff);
+        }
         break;
 
         default:
@@ -148,7 +196,7 @@ static void mpu_timer_function(unsigned long arg)
 
     struct mpu6050 *mpu = (struct mpu6050 *) arg;
 
-    iic_read_reg8(mpu->iic_io, &data, 0x3B, 6);
+    iic_read_reg8(mpu->iic_io, data, 0x3B, 6);
     // iic_read_reg8(mpu->iic_io, &data, 0x3C, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3D, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3E, 1);
@@ -216,8 +264,8 @@ int mpu6050_chrdev_init(struct platform_device *pdev)
     platform_set_drvdata(pdev, mpu);
 
     mpu6050_init(mpu);
-    setup_timer(&mpu->timer, mpu_timer_function, (unsigned long) mpu);
-    mod_timer(&mpu->timer, jiffies + msecs_to_jiffies(1000));
+    // setup_timer(&mpu->timer, mpu_timer_function, (unsigned long) mpu);
+    // mod_timer(&mpu->timer, jiffies + msecs_to_jiffies(1000));
 
     return 0;
 
