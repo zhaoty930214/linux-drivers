@@ -88,9 +88,9 @@ int main(int argc, char *argv[])
     // char data = 0x00;
     // atk_ms6050_write(0, 0x38, 1, &data);
 
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 50*1000*1000;
+    // struct timespec ts;
+    // ts.tv_sec = 0;
+    // ts.tv_nsec = 50*1000*1000;
     while(true)
     {
         /* 获取ATK-MS6050 DMP处理后的数据 */
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
         printf("gyr_x: %d, gyr_y: %d, gyr_z: %d, ", gyr_x, gyr_y, gyr_z);
         printf("temp: %d. ret= %x \r\n", temp, ret);
 
-        nanosleep(&ts, NULL);
+        //nanosleep(&ts, NULL);
     }
 
     return 0;
