@@ -1,0 +1,5 @@
+
+$(DRIVERS_NAME)-objs = $(patsubst %.c,%.o,$(filter %.c,$(DRIVERS_FILE)))
+obj-m += $(DRIVERS_NAME).o
+
+ccflags-y = $(addprefix -I,$(MPU6050_INC_DIRS))

@@ -60,7 +60,7 @@ static struct IIC_IO *iic_io;
 //#include "msp430_clock.h"
 //#include "msp430_interrupt.h"
 #include "inv_mpu.h"
-#include "../example/atk_ms6050.h"                    /* 包含相关头文件 */
+#include "atk_ms6050.h"                    /* 包含相关头文件 */
 #include "inv_mpu_dmp_motion_driver.h"
 #include <stdio.h>
 

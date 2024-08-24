@@ -235,7 +235,7 @@ int atk_ms6050_write(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
     struct mpu6050_write_reg wrReg;
     wrReg.reg_addr = reg_addr;
     wrReg.length = len;
-    wrReg.buff = buff;
+    wrReg.buff = (char *) buff;
     ret = ioctl(fd, MPU6050_WRITE_DATA, &wrReg);
 
     close(fd);
@@ -255,7 +255,7 @@ int atk_ms6050_read(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
     struct mpu6050_read_reg rdReg;
     rdReg.reg_addr = reg_addr;
     rdReg.length = len;
-    rdReg.buff = buff;
+    rdReg.buff = (char *) buff;
     ret = ioctl(fd, MPU6050_READ_DATA, &rdReg);
 
     close(fd);
