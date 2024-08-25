@@ -8,7 +8,7 @@
 #include <sys/ioctl.h>
 #include <time.h>
 
-
+#define UNUSED(X)   (void)(X)
 /**
  * @brief       ATK-MS6050软件复位
  * @param       无
@@ -225,6 +225,7 @@ uint8_t atk_ms6050_read_byte(uint8_t addr, uint8_t reg, uint8_t *dat)
 
 int atk_ms6050_write(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
 {
+    UNUSED(i2c_addr);
     int ret;
     // iic_write_reg8(*atk_iic_io, reg_addr, buff, len);
     int fd = open("/dev/I2C_MPU6050", O_RDWR);
@@ -244,6 +245,7 @@ int atk_ms6050_write(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
 
 int atk_ms6050_read(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
 {
+    UNUSED(i2c_addr);
     int ret;
     // iic_read_reg8(*atk_iic_io, buff, reg_addr, len);
     int fd = open("/dev/I2C_MPU6050", O_RDWR);

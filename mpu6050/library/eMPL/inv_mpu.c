@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <time.h>
 
-static struct IIC_IO *iic_io;
+// static struct IIC_IO *iic_io;
 
 #ifdef __linux
 #include <stdint.h>
@@ -38,6 +38,7 @@ static struct IIC_IO *iic_io;
 #include <math.h>
 #include <stdlib.h>
 
+#define UNUSED(x) (void)(x)  
 #define MOTION_DRIVER_TARGET_MSP430
 #define delay_ms(x)    do{struct timespec ts; ts.tv_sec=0; ts.tv_nsec = x*1000*1000; nanosleep(&ts, NULL); }while(0)
 
@@ -75,6 +76,7 @@ int min(int a, int b) {
 
 static inline int reg_int_cb(struct int_param_s *int_param) /* 中断回调函数（未实现） */
 {
+    UNUSED(int_param);
 //    return msp430_reg_int_cb(int_param->cb, int_param->pin, int_param->lp_exit,
 //        int_param->active_low);
     return 0;
@@ -1414,6 +1416,7 @@ int mpu_get_compass_sample_rate(unsigned short *rate)
  */
 int mpu_set_compass_sample_rate(unsigned short rate)
 {
+    UNUSED(rate);
 #ifdef AK89xx_SECONDARY
     unsigned char div;
     if (!rate || rate > st.chip_cfg.sample_rate || rate > MAX_COMPASS_SAMPLE_RATE)
@@ -2513,6 +2516,9 @@ int mpu_get_dmp_state(unsigned char *enabled)
  */
 int mpu_get_compass_reg(short *data, unsigned long *timestamp)
 {
+    UNUSED(data);
+    UNUSED(timestamp);
+
 #ifdef AK89xx_SECONDARY
     unsigned char tmp[9];
 
@@ -2566,6 +2572,7 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
  */
 int mpu_get_compass_fsr(unsigned short *fsr)
 {
+    UNUSED(fsr);
 #ifdef AK89xx_SECONDARY
     fsr[0] = st.hw->compass_fsr;
     return 0;
@@ -2787,7 +2794,7 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
 #endif
     } else {
         /* Don't "restore" the previous state if no state has been saved. */
-        int ii;
+        uint ii;
         char *cache_ptr = (char*)&st.chip_cfg.cache;
         for (ii = 0; ii < sizeof(st.chip_cfg.cache); ii++) {
             if (cache_ptr[ii] != 0)

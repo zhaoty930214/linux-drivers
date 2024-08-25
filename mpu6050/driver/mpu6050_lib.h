@@ -38,4 +38,5 @@ int mpu6050_chrdev_exit(struct platform_device *pdev);
 
 
 extern float asin_array[];
+
 #endif

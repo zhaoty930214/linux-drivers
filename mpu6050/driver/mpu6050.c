@@ -59,4 +59,4 @@ static struct platform_driver client_i2c_driver = {
 module_platform_driver(client_i2c_driver);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("tianyu.zhao@mevion.com");
+MODULE_AUTHOR("zhao_ty@qq.com");

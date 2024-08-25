@@ -3,7 +3,7 @@ SHELL = /bin/bash
 
 CC=$(CROSS_COMPILE)gcc -g
 
-GLOBAL_CFLAGS = -Wall -Wextra  -Wno-int-to-pointer-cast -Wno-int-conversion -std=gnu99 -g -O0
+GLOBAL_CFLAGS =  -Wextra  -Wno-int-to-pointer-cast -Wno-int-conversion -std=gnu99 -g -O0
 
 OUTPUT_DIR?=output
 
@@ -13,7 +13,7 @@ include driver/driver.mk
 
 .PHONY: all $(OUTPUT_DIR)
 
-all: library examples driver
+all: library examples  drivers
 
 
 $(OUTPUT_DIR):

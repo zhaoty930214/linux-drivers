@@ -155,7 +155,6 @@ uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len
         mpu6050_err("iic read len err");
     }
 
-
 	iic_start(iic_io);
 
 	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
