@@ -77,4 +77,4 @@ module_spi_driver(client_spi_driver);
 // module_exit(client_spi_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("tianyu.zhao@mevion.com");
+MODULE_AUTHOR("zhao_ty@qq.com");

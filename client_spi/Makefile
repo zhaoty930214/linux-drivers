@@ -1,5 +1,10 @@
-obj-m += client_spi.o
+#obj-m += client_spi.o
+obj-m +=  my_mpu6050.o
+#obj-m += st7796u.o
 client_spi-objs := zynq_client_spi.o client_spi_chrdev.o
+st7796u-objs := spi_screen.o
+my_mpu6050-objs := mpu6050.o
+
 
 KERN_DIR := $(KERNEL_DIR)
 

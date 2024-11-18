@@ -1,7 +1,7 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/spi/spi.h>
-
+#include <linux/uaccess.h>
 #include "client_spi_types.h"
 
 
@@ -22,23 +22,28 @@ static ssize_t client_spi_read(struct file *filp, char __user *buf,
                          size_t cnt, loff_t *offt)
 {
     ssize_t ret;
-    // struct client_spi *myspi = filp->private_data;
-    // ssize_t len;
-    // struct spi_message msg;
+    struct client_spi *myspi = filp->private_data;
+    struct spi_message msg;
+    struct spi_transfer t[2];
+    unsigned char  rx_buff[5];
 
-    // struct spi_transfer t = {
-    //     .tx_buf = buf,
-    //     .bits_per_word = 8,
-    //     .len = 2,
-    // };
+    t[0].tx_buf = buf;
+    t[0].bits_per_word = 8;
+    t[0].len = 1;
 
-    // spi_message_init(&msg);
-    // spi_message_add_tail(&t, &msg);
-    // ret = spi_sync(myspi->dspi, &msg);
-    // if(ret)
-    //     return ret;
+    t[1].rx_buf = rx_buff;
+    t[1].bits_per_word = 8;
+    t[1].len = 1;
 
-     return ret;
+    spi_message_init(&msg);
+    spi_message_add_tail(&t[0], &msg);
+    spi_message_add_tail(&t[1], &msg);
+
+    ret = spi_sync(myspi->dspi, &msg);
+    if(ret)
+        return ret;
+
+    return copy_to_user(buf, rx_buff, 1);
 
 }
 
@@ -47,17 +52,19 @@ static ssize_t client_spi_write(struct file *filp, const char __user *buf,
                          size_t cnt, loff_t *offt)
 {
     struct client_spi *myspi = filp->private_data;
-    ssize_t len, ret;
+    ssize_t ret;
     struct spi_message msg;
+    struct spi_transfer t[1];
 
-    struct spi_transfer t = {
-        .tx_buf = buf,
-        .bits_per_word = 8,
-        .len = 2,
-    };
+    t[0].tx_buf = buf;
+    t[0].bits_per_word = 8;
+    t[0].len = 1;
+
 
     spi_message_init(&msg);
-    spi_message_add_tail(&t, &msg);
+    spi_message_add_tail(&t[0], &msg);
+    spi_message_add_tail(&t[1], &msg);
+    
     ret = spi_sync(myspi->dspi, &msg);
     if(ret)
         return ret;
