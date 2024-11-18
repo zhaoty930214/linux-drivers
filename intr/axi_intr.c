@@ -135,6 +135,7 @@ static int key_parse_dt(void)
     if(NULL == axi_intr_t.nd1)
     {
         printk(KERN_ERR "axi_intr: Failed to get axi_intr node\r\n");
+        return -EINVAL;
     }
 
     axi_intr_t.irq_num1 = irq_of_parse_and_map(axi_intr_t.nd1, 0);
@@ -147,7 +148,8 @@ static int key_parse_dt(void)
     ret = request_irq(axi_intr_t.irq_num1, axi_gpio_handler_1, 0, "PL_AXI_GPIO0", NULL);
     if(ret)
     {
-        printk(KERN_INFO "request irq failed\r\n");
+        printk(KERN_INFO "request irq1 failed\r\n");
+        return ret;
     }
 
 
@@ -156,6 +158,7 @@ static int key_parse_dt(void)
     if(NULL == axi_intr_t.nd2)
     {
         printk(KERN_ERR "axi_intr: Failed to get axi_intr node\r\n");
+        return -EINVAL;
     }
 
     axi_intr_t.irq_num2 = irq_of_parse_and_map(axi_intr_t.nd2, 0);
@@ -168,7 +171,8 @@ static int key_parse_dt(void)
     ret = request_irq(axi_intr_t.irq_num2, axi_gpio_handler_2, 0, "PL_AXI_GPIO1", NULL);
     if(ret)
     {
-        printk(KERN_INFO "request irq failed\r\n");
+        printk(KERN_INFO "request irq2 failed\r\n");
+        return ret;
     }
 
 
@@ -237,7 +241,14 @@ static int __init axi_intr_init(void)
     ret = key_parse_dt();
     printk(KERN_ERR "tag2. ret = %d\r\n", ret);
 
-    axi_intr_chrdev_init();
+    if(0 == ret)
+    {
+        axi_intr_chrdev_init();
+    }
+    else
+    {
+        return -EINVAL;
+    }
 
     spin_lock_init(&axi_intr_t.spin_lock);
 
@@ -270,4 +281,4 @@ static void __exit axi_intr_exit(void)
 module_init(axi_intr_init);
 module_exit(axi_intr_exit);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("tianyu.zhao@mevion.com");
+MODULE_AUTHOR("zhao_ty@qq.com");
