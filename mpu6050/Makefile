@@ -3,7 +3,8 @@ SHELL = /bin/bash
 
 CC=$(CROSS_COMPILE)gcc -g
 
-GLOBAL_CFLAGS =  -Wextra  -Wno-int-to-pointer-cast -Wno-int-conversion -std=gnu99 -g -O0
+# GLOBAL_CFLAGS =  -Wextra  -Wno-int-to-pointer-cast -Wno-int-conversion -std=gnu99 -g -O0
+GLOBAL_CFLAGS =  -Wextra -Wno-error -Wno-int-to-pointer-cast  -std=gnu99 -g -O0
 
 OUTPUT_DIR?=output
 

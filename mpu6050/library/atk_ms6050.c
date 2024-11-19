@@ -237,6 +237,7 @@ int atk_ms6050_write(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
     wrReg.reg_addr = reg_addr;
     wrReg.length = len;
     wrReg.buff = (char *) buff;
+
     ret = ioctl(fd, MPU6050_WRITE_DATA, &wrReg);
 
     close(fd);
@@ -253,11 +254,11 @@ int atk_ms6050_read(uint8_t i2c_addr, uint8_t reg_addr, int len, uint8_t *buff)
     {
         printf("Can not open device\n");
     }
-
     struct mpu6050_read_reg rdReg;
     rdReg.reg_addr = reg_addr;
     rdReg.length = len;
     rdReg.buff = (char *) buff;
+    
     ret = ioctl(fd, MPU6050_READ_DATA, &rdReg);
 
     close(fd);

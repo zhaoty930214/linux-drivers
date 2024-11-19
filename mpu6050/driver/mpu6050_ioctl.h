@@ -18,12 +18,17 @@ struct mpu6050_write_reg{
     char *buff;
 };
 
-#define MPU6050_READ_DATA    _IOW(MPU6050_IOCTL_MAGIC, 0, \
+#define MPU6050_READ_DATA   _IOW(MPU6050_IOCTL_MAGIC, 0, \
                                     struct mpu6050_read_reg)
 
 
-#define MPU6050_WRITE_DATA      _IOW(MPU6050_IOCTL_MAGIC, 1, \
+#define MPU6050_WRITE_DATA  _IOW(MPU6050_IOCTL_MAGIC, 1, \
                                     struct mpu6050_write_reg)
 
+#define MPU6050_READ_REG    _IOW(MPU6050_IOCTL_MAGIC, 2, \
+                                    struct mpu6050_read_reg)
+
+#define MPU6050_WRITE_REG   _IOW(MPU6050_IOCTL_MAGIC, 3, \
+                                    struct mpu6050_read_reg)                                    
 
 #endif

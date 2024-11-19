@@ -3,11 +3,24 @@
 #include "mpu6050_constants.h"
 // #include "atk_ms6050/atk_ms6050.h"
 
+#define iic_write_byte_t(a, b, c)     mpu6050_write_byte(a, b, c, 1)
+
+bool mpu6050_self_check(struct mpu6050 *mpu)
+{
+    bool ret;
+    uint8_t  devid;
+    mpu6050_read_reg(mpu->client, MPU_DEVICE_ID_REG, &devid, 1);
+
+    printk("MPU6050 Self check result: 0x%02x\n", devid);
+
+    return ret = (devid == 0x68);
+}
+
 void mpu6050_soft_reset(struct mpu6050 *mpu)
 {
-    iic_write_byte(mpu->iic_io, MPU_SIGPATH_RST_REG, 0x80);
+    iic_write_byte_t(mpu->client, MPU_PWR_MGMT1_REG, 0x80);
     msleep(100);
-    iic_write_byte(mpu->iic_io, MPU_SIGPATH_RST_REG, 0x00);
+    iic_write_byte_t(mpu->client, MPU_PWR_MGMT1_REG, 0x01);
 }
 
 /**
@@ -19,15 +32,15 @@ void mpu6050_soft_reset(struct mpu6050 *mpu)
  * @retval      ATK_MS6050_EOK : 函数执行成功
  *              ATK_MS6050_EACK: IIC通讯ACK错误，函数执行失败
  */
-uint8_t atk_ms6050_set_gyro_fsr(uint8_t fsr, struct IIC_IO *iic_io)
+uint8_t atk_ms6050_set_gyro_fsr(struct mpu6050 *mpu, uint8_t fsr, struct IIC_IO *iic_io)
 {
-    return iic_write_byte(*iic_io, MPU_GYRO_CFG_REG, fsr << 3);
+    return iic_write_byte_t(mpu->client, MPU_GYRO_CFG_REG, fsr << 3);
 }
 
 
-uint8_t atk_ms6050_set_accel_fsr(uint8_t fsr, struct IIC_IO *iic_io)
+uint8_t atk_ms6050_set_accel_fsr(struct mpu6050 *mpu, uint8_t fsr, struct IIC_IO *iic_io)
 {
-    return iic_write_byte(*iic_io, MPU_ACCEL_CFG_REG, fsr << 3);
+    return iic_write_byte_t(mpu->client, MPU_ACCEL_CFG_REG, fsr << 3);
 }
 
 
@@ -37,7 +50,7 @@ uint8_t atk_ms6050_set_accel_fsr(uint8_t fsr, struct IIC_IO *iic_io)
  * @retval      ATK_MS6050_EOK : 函数执行成功
  *              ATK_MS6050_EACK: IIC通讯ACK错误，函数执行失败
  */
-uint8_t atk_ms6050_set_lpf(uint16_t lpf, struct IIC_IO *iic_io)
+uint8_t atk_ms6050_set_lpf(struct mpu6050 *mpu, uint16_t lpf, struct IIC_IO *iic_io)
 {
     uint8_t dat;
     
@@ -66,7 +79,7 @@ uint8_t atk_ms6050_set_lpf(uint16_t lpf, struct IIC_IO *iic_io)
         dat = 6;
     }
     
-    return iic_write_byte(*iic_io, MPU_CFG_REG, dat);
+    return iic_write_byte_t(mpu->client, MPU_CFG_REG, dat);
 }
 
 
@@ -76,7 +89,7 @@ uint8_t atk_ms6050_set_lpf(uint16_t lpf, struct IIC_IO *iic_io)
  * @retval      ATK_MS6050_EOK : 函数执行成功
  *              ATK_MS6050_EACK: IIC通讯ACK错误，函数执行失败
  */
-uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io)
+uint8_t atk_ms6050_set_rate(struct mpu6050 *mpu, uint16_t rate, struct IIC_IO *iic_io)
 {
     uint8_t ret;
     uint8_t dat;
@@ -91,14 +104,14 @@ uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io)
         rate = 4;
     }
     
-    dat = 1000 / rate - 1;
-    ret = iic_write_byte(*iic_io, MPU_SAMPLE_RATE_REG, dat);
+    dat = 19;
+    ret = iic_write_byte_t(mpu->client, MPU_SAMPLE_RATE_REG, dat);
     if (ret != ATK_MS6050_EOK)
     {
         return ret;
     }
     
-    ret = atk_ms6050_set_lpf(rate >> 1, iic_io);
+    ret = atk_ms6050_set_lpf(mpu, rate >> 1, iic_io);
     if (ret != ATK_MS6050_EOK)
     {
         return ret;
@@ -179,16 +192,34 @@ uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io)
 
 void mpu6050_init(struct mpu6050 *mpu)
 {
-    mpu6050_soft_reset(mpu);                                 /* ATK-MS050软件复位 */
-    atk_ms6050_set_gyro_fsr(3, &mpu->iic_io);                /* 陀螺仪传感器，±2000dps */   
-    atk_ms6050_set_accel_fsr(0, &mpu->iic_io);               /* 加速度传感器，±2g */
-    atk_ms6050_set_rate(50, &mpu->iic_io);                   /* 采样率，50Hz */
+    mpu6050_self_check(mpu);                                   /* self check*/
+
+    mpu6050_soft_reset(mpu);                                   /* soft reset */
+
+    iic_write_byte_t(mpu->client, MPU_INT_EN_REG,    0X00);    /* disable interrupts */
+
+    iic_write_byte_t(mpu->client, MPU_ACCEL_CFG_REG, 0X08);    /* ±4g */
+
+    iic_write_byte_t(mpu->client, MPU_SAMPLE_RATE_REG, 0x00);  /* sample rate*/
+
+    iic_write_byte_t(mpu->client, MPU_INTBP_CFG_REG, 0x02);    /* direct accessing sub I2C*/
+
+    iic_write_byte_t(mpu->client, MPU_CFG_REG, 0x04);          /* output 1kHz, DLPF=20HZ*/
+
+    iic_write_byte_t(mpu->client, MPU_GYRO_CFG_REG, 0x18);     /* full scale +-2000 d/s*/
+
+    iic_write_byte_t(mpu->client, MPU_ACCEL_CFG_REG, 0x08);    /* accel full scale +-4 g*/
+
+    // atk_ms6050_set_gyro_fsr(mpu, 3, &mpu->iic_io);             /* 陀螺仪传感器，±2000dps */   
+    // atk_ms6050_set_accel_fsr(mpu, 0, &mpu->iic_io);            /* 加速度传感器，±2g */
+    // atk_ms6050_set_rate(mpu, 50, &mpu->iic_io);                /* 采样率，50Hz */
     
-    iic_write_byte(mpu->iic_io, MPU_INT_EN_REG,    0X00);    /* 关闭所有中断 */
-    iic_write_byte(mpu->iic_io, MPU_USER_CTRL_REG, 0X00);    /* 关闭IIC主模式 */
-    iic_write_byte(mpu->iic_io, MPU_FIFO_EN_REG,   0X00);    /* 关闭FIFO */
-    iic_write_byte(mpu->iic_io, MPU_INTBP_CFG_REG, 0X80);    /* INT引脚低电平有效 */
-    iic_write_byte(mpu->iic_io, MPU_PWR_MGMT1_REG, 0x01);    /* 设置CLKSEL，PLL X轴为参考 */
-    iic_write_byte(mpu->iic_io, MPU_PWR_MGMT2_REG, 0x00);    /* 加速度与陀螺仪都工作 */
-    atk_ms6050_set_rate(50, &mpu->iic_io);                   /* 采样率，50Hz */
+    // iic_write_byte_t(mpu->client, MPU_USER_CTRL_REG, 0X00);    /* 关闭IIC主模式 */
+
+    // iic_write_byte_t(mpu->client, MPU_FIFO_EN_REG,   0X00);    /* 关闭FIFO */
+    // iic_write_byte_t(mpu->client, MPU_INTBP_CFG_REG, 0X80);    /* INT引脚低电平有效 */
+    // // iic_write_byte_t(mpu->client, MPU_PWR_MGMT1_REG, 0x01);    /* 设置CLKSEL，PLL X轴为参考 */
+    // iic_write_byte_t(mpu->client, MPU_PWR_MGMT2_REG, 0x00);    /* 加速度与陀螺仪都工作 */
+    // atk_ms6050_set_rate(mpu, 40, &mpu->iic_io);                   /* 采样率，50Hz */
+
 }

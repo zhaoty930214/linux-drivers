@@ -94,20 +94,26 @@ int main(int argc, char *argv[])
     while(true)
     {
         /* 获取ATK-MS6050 DMP处理后的数据 */
-        ret  = atk_ms6050_dmp_get_data(&pit, &rol, &yaw);
-        printf("ret= %x \r\n", ret);
+        // ret  = atk_ms6050_dmp_get_data(&pit, &rol, &yaw);
+        // printf("ret= %x \r\n", ret);
 
-        /* 获取ATK-MS6050加速度值 */
-        ret += atk_ms6050_get_accelerometer(&acc_x, &acc_y, &acc_z) << 1;
+
         /* 获取ATK-MS6050陀螺仪值 */
         ret += atk_ms6050_get_gyroscope(&gyr_x, &gyr_y, &gyr_z) << 2;
         /* 获取ATK-MS6050温度值 */
         ret += atk_ms6050_get_temperature(&temp) << 3;
+        /* 获取ATK-MS6050加速度值 */
+        ret += atk_ms6050_get_accelerometer(&acc_x, &acc_y, &acc_z) << 1;
 
+        char ID;
+        atk_ms6050_read(0, MPU_DEVICE_ID_REG, &ID, 1);
+
+        printf("ID=%x", ID);
         printf("pit: %f, rol: %f, yaw: %f;", pit, rol, yaw);
         printf("acc_x: %d, acc_y: %d, acc_z: %d, ", acc_x, acc_y, acc_z);
         printf("gyr_x: %d, gyr_y: %d, gyr_z: %d, ", gyr_x, gyr_y, gyr_z);
         printf("temp: %d. ret= %x \r\n", temp, ret);
+
 
         //nanosleep(&ts, NULL);
     }

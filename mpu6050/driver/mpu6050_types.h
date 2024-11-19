@@ -21,6 +21,8 @@ struct IIC_IO{
     int gpio_SDA;
 };
 
+//typdef int (*fptr_iic_read)(char *, uint8_t, uint8_t) iic_read;
+
 struct mpu6050{
     struct i2c_client *client;
     struct cdev cdev;
@@ -29,6 +31,7 @@ struct mpu6050{
     struct device *device;
     struct IIC_IO iic_io;
     struct timer_list timer;
+    //fptr_iic_read IIC_read;
 };
 
 

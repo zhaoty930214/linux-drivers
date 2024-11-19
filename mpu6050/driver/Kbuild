@@ -3,3 +3,6 @@ $(DRIVERS_NAME)-objs = $(patsubst %.c,%.o,$(filter %.c,$(DRIVERS_FILE)))
 obj-m += $(DRIVERS_NAME).o
 
 ccflags-y = $(addprefix -I,$(MPU6050_INC_DIRS))
+
+mpu_i2c-objs = use_i2c.o mpu6050_config.o mpu6050_i2c.o
+obj-m += mpu_i2c.o

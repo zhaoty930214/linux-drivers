@@ -103,42 +103,42 @@ static void iic_ack(struct IIC_IO iio_io)
 }
 
 //两线式接口写寄存器
-int iic_write_reg8(struct IIC_IO iic_io, uint8_t addr , uint8_t *data, int len)
+int iic_write_reg8(struct mpu6050 *mpu, uint8_t addr , uint8_t *data, int len)
 {
     int i;
-	iic_start(iic_io);
+	iic_start(mpu->iic_io);
 
-	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(mpu->iic_io);
 
-	iic_send_byte(iic_io, addr);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, addr);
+	iic_ack(mpu->iic_io);
 
     for(i=0; i< len; i++)
     {
-        iic_send_byte(iic_io, data[i]);
-        iic_ack(iic_io);
+        iic_send_byte(mpu->iic_io, data[i]);
+        iic_ack(mpu->iic_io);
     }
     
-  	iic_stop(iic_io);
+  	iic_stop(mpu->iic_io);
 
     return 0;
 }
 
-int iic_write_byte(struct IIC_IO iic_io, uint8_t addr , uint8_t data)
+int iic_write_byte(struct mpu6050 *mpu, uint8_t addr , uint8_t data)
 {
-	iic_start(iic_io);
+	iic_start(mpu->iic_io);
 
-	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(mpu->iic_io);
 
-	iic_send_byte(iic_io, addr);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, addr);
+	iic_ack(mpu->iic_io);
 
-    iic_send_byte(iic_io, data);
-    iic_ack(iic_io);
+    iic_send_byte(mpu->iic_io, data);
+    iic_ack(mpu->iic_io);
     
-  	iic_stop(iic_io);
+  	iic_stop(mpu->iic_io);
 
     return 0;
 }
@@ -146,7 +146,7 @@ int iic_write_byte(struct IIC_IO iic_io, uint8_t addr , uint8_t data)
 
 
 //两线式接口读寄存器
-uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len)
+uint8_t iic_read_reg8(struct mpu6050 *mpu, uint8_t *buff, uint8_t addr, int len)
 {   
     int i;
 
@@ -155,26 +155,26 @@ uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len
         mpu6050_err("iic read len err");
     }
 
-	iic_start(iic_io);
+	iic_start(mpu->iic_io);
 
-	iic_send_byte(iic_io, MPU6050_ADDR | 0x0);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, MPU6050_ADDR | 0x0);
+	iic_ack(mpu->iic_io);
 
-	iic_send_byte(iic_io, addr);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, addr);
+	iic_ack(mpu->iic_io);
 
-  	iic_start(iic_io);
+  	iic_start(mpu->iic_io);
 
-	iic_send_byte(iic_io, MPU6050_ADDR | 0x01);
-	iic_ack(iic_io);
+	iic_send_byte(mpu->iic_io, MPU6050_ADDR | 0x01);
+	iic_ack(mpu->iic_io);
     
     for(i=0; i<len; i++)
     {
-        buff[i] = iic_rece_byte(iic_io);
-        iic_ack(iic_io);    
+        buff[i] = iic_rece_byte(mpu->iic_io);
+        iic_ack(mpu->iic_io);    
     }
 
-  	iic_stop(iic_io);
+  	iic_stop(mpu->iic_io);
     // for(i=0; i<len; i++)
     // {
     //     printk(KERN_INFO "Read out from *%x=%x\r\n", addr+i, buff[i]);
@@ -182,12 +182,84 @@ uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len
   	return  buff[0];
 }
 
-
-
-static int mpu6050_read_reg(struct i2c_client *client, u8 reg, u8 *buf, u8 len)
+int mpu6050_write_reg(struct i2c_client *pclient, u8 reg, u8 *buf, u8 len) 
 {
-    struct i2c_msg msg[2];
+	struct i2c_client *client = pclient;
+	struct i2c_msg msg;
+	int ret;
+    char *send_buf;
+
+	if (16 < len) {
+		dev_err(&client->dev, "%s: error: Invalid transfer byte length %d\n",
+					__func__, len);
+		return -EINVAL;
+	}
+
+    send_buf = kzalloc(len+1, GFP_KERNEL);
+
+	memcpy(&send_buf[1], buf, len);	// 将要写入的数据存放到数组send_buf后面
+
+    send_buf[0] = reg;
+	msg.addr = client->addr;		// pcf8563从机地址
+	msg.flags = client->flags;		// 标记为写数据
+	msg.buf = send_buf;				// 要写入的数据缓冲区
+	msg.len = len + 1;				// 要写入的数据长度
+
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (1 != ret) {
+        kfree(send_buf);
+		dev_err(&client->dev, "%s: error: reg=0x%x, len=0x%x\n",
+					__func__, 0, len);
+		return -EIO;
+	}
+
+    kfree(send_buf);
+
+    return 0;
+}
+
+int mpu6050_write_byte(struct i2c_client *pclient, u8 reg, u8 value, u8 len) 
+{
+	struct i2c_client *client = pclient;
+	struct i2c_msg msg;
+	int ret;
+    char buf[2];
+
+	if (16 < len) {
+		dev_err(&client->dev, "%s: error: Invalid transfer byte length %d\n",
+					__func__, len);
+		return -EINVAL;
+	}
+
+    buf[0] = reg;
+    buf[1] = value;
+
+	msg.addr = client->addr;		// pcf8563从机地址
+	msg.flags = client->flags;		// 标记为写数据
+	msg.buf = buf;				// 要写入的数据缓冲区
+	msg.len = 2;				// 要写入的数据长度
+
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (1 != ret) {
+		dev_err(&client->dev, "%s: error: reg=0x%x, len=0x%x\n",
+					__func__, 0, len);
+		return -EIO;
+	}
+    else
+    {
+        dev_info(&client->dev, "%s success: reg=0x%x, val=0x%x\n",
+                    __func__, reg, value);
+    }
+
+    return 0;
+}
+
+
+int mpu6050_read_reg(struct i2c_client *pclient, u8 reg, u8 *buf, u8 len)
+{
     int ret;
+    struct i2c_client *client = pclient;
+    struct i2c_msg msg[2];
 
     msg[0].addr = client->addr;
     msg[0].flags = client->flags;
@@ -200,11 +272,16 @@ static int mpu6050_read_reg(struct i2c_client *client, u8 reg, u8 *buf, u8 len)
     msg[1].len = len;
 
     ret = i2c_transfer(client->adapter, msg, 2);
-    if( 2!= ret)
-    {
-        dev_err(&client->dev, "%s:error:reg=0x%02x,len=0x%x\n",
-                                __func__, reg, len);
-        return -EIO;
+    if(2 != ret) {
+        dev_err(&client->dev, "%s: error: reg=0x%x, len=0x%x\n", 
+                    __func__, reg, len);
     }
+    // else
+    // {
+    //     dev_info(&client->dev, "%s read success: reg=0x%x, len=0x%x\n",
+    //                 __func__, reg, len);
+    // }
     return 0;
 }
+
+

@@ -13,18 +13,20 @@
            __LINE__, ## __VA_ARGS__)
 
 /*iic interface function*/
-int iic_write_reg8(struct IIC_IO iic_io, uint8_t addr , uint8_t *data, int len);
-int iic_write_byte(struct IIC_IO iic_io, uint8_t addr , uint8_t data);
-uint8_t iic_read_reg8(struct IIC_IO iic_io, uint8_t *buff, uint8_t addr, int len);
+int iic_write_reg8(struct mpu6050 *mpu, uint8_t addr , uint8_t *data, int len);
+int iic_write_byte(struct mpu6050 *mpu, uint8_t addr , uint8_t data);
+uint8_t iic_read_reg8(struct mpu6050 *mpu, uint8_t *buff, uint8_t addr, int len);
+
+int mpu6050_write_reg(struct i2c_client *pclient, u8 reg, u8 *buf, u8 len);
+int mpu6050_read_reg(struct i2c_client *pclient, u8 reg, u8 *buf, u8 len);
+
+int mpu6050_write_byte(struct i2c_client *pclient, u8 reg, u8 value, u8 len); 
+
 
 /*mpu6050 config interface*/
 void mpu6050_soft_reset(struct mpu6050 *mpu);
-// uint8_t atk_ms6050_set_gyro_fsr(uint8_t fsr, struct IIC_IO *iic_io);
-// uint8_t atk_ms6050_set_accel_fsr(uint8_t fsr, struct IIC_IO *iic_io);
-uint8_t atk_ms6050_set_lpf(uint16_t lpf, struct IIC_IO *iic_io);
-// uint8_t atk_ms6050_set_rate(uint16_t rate, struct IIC_IO *iic_io);
+uint8_t atk_ms6050_set_lpf(struct mpu6050 *mpu, uint16_t lpf, struct IIC_IO *iic_io);
 uint8_t atk_ms6050_get_accelerometer(int16_t *ax, int16_t *ay, int16_t *az, struct IIC_IO *iic_io);
-// uint8_t atk_ms6050_get_temperature(int16_t *temp, struct IIC_IO *iic_io);
 uint8_t atk_ms6050_get_gyroscope(int16_t *gx, int16_t *gy, int16_t *gz, struct IIC_IO *iic_io);
 
 

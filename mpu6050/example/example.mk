@@ -19,7 +19,7 @@ EXAMPLE_OUTPUT_EXECUTABLES = $(addprefix $(OUTPUT_DIR)/,$(EXAMPLE_TARGETS))
 
 # Set the example executables to link against the AXI DMA shared library in
 # the outputs directory
-EXAMPLES_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN'
+#EXAMPLES_LINKER_FLAGS = -Wl,-rpath,'$$ORIGIN'
 EXAMPLES_LIB_FLAGS = -L $(OUTPUT_DIR) -l $(LIBMPU6050_NAME) -lm \
 					 $(EXAMPLES_LINKER_FLAGS)
 
@@ -36,7 +36,7 @@ $(EXAMPLE_TARGETS): $(OUTPUT_DIR)/$$@
 $(EXAMPLE_EXECUTABLES): $$@.c
 	echo $@.c
 	$(CC) $(EXAMPLE_CFLAGS) $(LIBAXIDMA_INC_FLAGS)  \
-	 $(filter %.c,$^) -o $@ $(EXAMPLES_LIB_FLAGS)
+	 $(filter %.c,$^) -lm -o $@ $(EXAMPLES_LIB_FLAGS)
 
 examples_clean: $(EXAMPLE_CLEAN_TARGETS)
 

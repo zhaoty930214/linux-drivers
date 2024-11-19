@@ -12,11 +12,10 @@
 #include <linux/i2c.h>
 #include <linux/cdev.h>
 #include <linux/of_gpio.h>
+#include <linux/timer.h>
 
 #include "mpu6050_types.h"
 #include "mpu6050_lib.h"
-
-#include <linux/timer.h>
 
 
 static int client_i2c_probe(struct platform_device *pdev)

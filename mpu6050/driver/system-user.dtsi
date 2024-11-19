@@ -1,0 +1,56 @@
+#define GPIO_ACTIVE_HIGH 0
+#define GPIO_ACTIVE_LOW 1
+
+/include/ "system-conf.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+    pl_key1{
+        compatible = "pl-key,irq";
+        status = "okay";
+        pl-gpio = <&axi_gpio_0 0 GPIO_ACTIVE_HIGH>;
+        interrupt-parent=<&axi_gpio_0>;
+        interrupts=<0 IRQ_TYPE_EDGE_BOTH>;
+    };
+
+    pl_key2{
+        compatible = "pl-key,irq";
+        status = "okay";
+        pl-gpio = <&axi_gpio_1 0 GPIO_ACTIVE_HIGH>;
+        interrupt-parent=<&axi_gpio_1>;
+        interrupts=<0 IRQ_TYPE_EDGE_BOTH>;
+    };
+
+    my_mpu6050 {
+	compatible = "zty,mpu-6050";
+	gpio-SCL = <&gpio0 54 GPIO_ACTIVE_LOW>; 
+	gpio-SDA = <&gpio0 55 GPIO_ACTIVE_LOW>;
+    };
+
+};
+
+&i2c0 {
+    clock-frequency = <400000>;
+    
+    mpu6050@69 {
+        compatible = "zty,mpu-6050";
+        gpio-SCL = <&gpio0 54 GPIO_ACTIVE_HIGH>; 
+        gpio-SDA = <&gpio0 55 GPIO_ACTIVE_HIGH>;
+        reg = <0x68>;
+    };
+
+};
+
+
+
+&spi0 {
+    st7796v@0 {
+        status = "okay";
+        compatible = "sitronix,st7796s";
+       	reg = <0>;
+       	spi-max-frequency =<25000000>;        //EMIO SPI时钟最大25MHz
+        reset-gpios=<&gpio0 55 GPIO_ACTIVE_HIGH>;   //EMIO 55
+       	dc-gpios  =<&gpio0 54 GPIO_ACTIVE_LOW>;   //EMIO 54
+    };
+};

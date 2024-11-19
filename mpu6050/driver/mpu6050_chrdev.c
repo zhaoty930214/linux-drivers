@@ -12,6 +12,7 @@
 #include "mpu6050_lib.h"
 #include "mpu6050_ioctl.h"
 
+#define USE_SIMU_I2C  0
 
 int mpu6050_open(struct inode *nd, struct file *filep)
 {
@@ -42,7 +43,7 @@ static ssize_t mpu6050_read(struct file *filep, char __user *buff,  size_t len, 
         printk("Read err, mpu is NULL\r\n");
     }
 
-    iic_read_reg8(mpu->iic_io, data, 0x08, len);
+    iic_read_reg8(mpu, data, 0x08, len);
 
     ret = copy_to_user(buff, (const void *) data, len);
 
@@ -102,6 +103,7 @@ static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long ar
     struct mpu6050 *mpu = filep->private_data;
     struct mpu6050_read_reg rd_reg;
     struct mpu6050_write_reg wr_reg;
+    char *buff;
     // struct mpu6050_read_reg *ptrRdReg;
     // struct mpu6050_write_reg * __user wrRegPtr;
     void * __user arg_ptr = (void __user *) arg;
@@ -119,10 +121,13 @@ static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long ar
             // printk("Addr=%x\n", rd_reg.reg_addr);
             // printk("Len=%d\n", rd_reg.length);
 
-            char *buff=kzalloc(rd_reg.length, GFP_KERNEL);
+            buff = kzalloc(rd_reg.length, GFP_KERNEL);
 
-            iic_read_reg8(mpu->iic_io, buff, rd_reg.reg_addr, rd_reg.length);
-
+            #if USE_SIMU_I2C
+                iic_read_reg8(mpu, buff, rd_reg.reg_addr, rd_reg.length);
+            #else
+                mpu6050_read_reg(mpu->client, rd_reg.reg_addr, buff, rd_reg.length);
+            #endif
             // /*on succes 0 returned, on fail non-0 returned which 
             // * represent how many bytes failed to copy*/
             rc = copy_to_user(rd_reg.buff, buff, rd_reg.length);
@@ -145,7 +150,7 @@ static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long ar
             // printk("Len=%d\n", wr_reg.length);
             // printk("buff start at=%x\n", wr_reg.buff);
 
-            char *buff= kzalloc(wr_reg.length, GFP_KERNEL);
+            buff= kzalloc(wr_reg.length, GFP_KERNEL);
             
             /*BUG*/
             //wr_reg.buff = kzalloc(wr_reg.length, GFP_KERNEL);
@@ -155,7 +160,12 @@ static long mpu6050_ioctl(struct file *filep, unsigned int cmd, unsigned long ar
             {
                 printk("Unable to copy buff data from userspace for MPU6050_WRITE_DATA\n");
             }
-            iic_write_reg8(mpu->iic_io, wr_reg.reg_addr, buff, wr_reg.length);
+
+            #if USE_SIMU_I2C
+            iic_write_reg8(mpu, wr_reg.reg_addr, buff, wr_reg.length);
+            #else
+            mpu6050_write_reg(mpu->client, wr_reg.reg_addr, buff, wr_reg.length);
+            #endif
 
             kfree(buff);
         }
@@ -245,7 +255,7 @@ static void mpu_timer_function(unsigned long arg)
 
     struct mpu6050 *mpu = (struct mpu6050 *) arg;
 
-    iic_read_reg8(mpu->iic_io, data, 0x3B, 6);
+    iic_read_reg8(mpu, data, 0x3B, 6);
     // iic_read_reg8(mpu->iic_io, &data, 0x3C, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3D, 1);
     // iic_read_reg8(mpu->iic_io, &data, 0x3E, 1);
