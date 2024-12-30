@@ -1,0 +1,80 @@
+#include <dt-bindings/media/xilinx-vip.h>
+/include/ "system-conf.dtsi"
+
+#define GPIO_ACTIVE_HIGH   0
+#define GPIO_ACTIVE_LOW    1
+
+/ {  
+    model = "Navigator Development Board"; 
+    compatible = "alientek,zynq-7020","xlnx,zynq-7000"; 
+
+   reserved-memory {
+      #address-cells = <1>;
+      #size-cells = <1>;
+      ranges;
+  
+      reserved: buffer@0x38000000 {
+         no-map;
+         reg = <0x38000000 0x08000000>;
+      };
+   };
+  
+   reserved-driver@0 {
+      compatible = "xlnx,reserved-memory";
+      memory-region = <&reserved>;
+   };
+
+    vdmatest_1: vdmatest@1 {
+	compatible ="xlnx,vdmaCamera";
+	xlnx,num-fstores = <0x3>;
+	dmas = <&axi_vdma_0 0
+	        &axi_vdma_0 1>;
+	dma-names = "vdma0", "vdma1";
+	sccbSCL-gpio = <&gpio0 54 GPIO_ACTIVE_LOW>;
+	sccbSDA-gpio = <&gpio0 55 GPIO_ACTIVE_LOW>;
+    };
+};
+
+
+&amba_pl {
+    vcap_mt9v034 {
+        compatible = "xlnx,video";
+        dmas = <&axi_vdma_0 1>;
+        dma-names = "port0";
+        ports {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            port@0 {
+                reg = <0>;
+                direction = "input";
+                vcap_mt9v034_in: endpoint {
+                    remote-endpoint = <&mt9v034_out_1>;
+                };
+            };
+        };
+    };
+};
+
+&i2c1 {
+    clock-frequency = <100000>;
+    sensor@48{
+        compatible = "aptina,mt9v034";
+        reg = <0x48>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        port@0 {
+            reg = <0>;
+            xlnx,video-format = <XVIP_VF_RGBA>;
+            xlnx,video-width = <24>;
+            mt9v034_out_1: endpoint {
+                remote-endpoint = <&vcap_mt9v034_in>;
+		link-frequencies = /bits/ 64
+				<24000000 24000000 24000000>;
+            };
+        };
+    };
+};
+
+
+
